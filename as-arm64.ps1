@@ -1,8 +1,9 @@
 $path = ".\entry.asm"
 $linesOfTokens = [System.Collections.Generic.List[System.Collections.Generic.List[string]]]::new()
-$outputCode = [System.Collections.Generic.List[System.Collections.Generic.list[string]]]::new()
-$directiveList = [System.Collections.Generic.List]::new
-$labelList = [System.Collections.Generic.List]::new
+$symbolTable = [System.Collections.Generic.Dictionary[string, int]]::new()
+
+[int]$pc = 0
+
 
 if (Test-Path $path) {
     foreach ($line in [System.IO.File]::ReadLines($path)) {
@@ -10,7 +11,6 @@ if (Test-Path $path) {
 
         if ($cleanLine) {
             $currentLineTokens = [System.Collections.Generic.List[string]]::new()
-
             $words = $cleanLine -split '[\s,]+'
 
             foreach ($word in $words) {
@@ -19,32 +19,45 @@ if (Test-Path $path) {
                 }
             }
 
-            $linesOfTokens.Add($currentLineTokens)
+            if ($currentLineTokens.Count -gt 0) {
+                $linesOfTokens.Add($currentLineTokens)
+            }
         }
     }
 }
 else {
     Write-Host "File $path not found!" -ForegroundColor Red
-}
-
-
-for ($i = 0; $i -lt $linesOfTokens.Count; $i++) {
-    Write-Host "Line $i`:" -ForegroundColor Yellow
-    
-    for ($j = 0; $j -lt $linesOfTokens[$i].Count; $j++) {
-        $token = $linesOfTokens[$i][$j]
-        Write-Host "  Token [$j]: $token"
-    }
+    exit
 }
 
 for ($i = 0; $i -lt $linesOfTokens.Count; $i++) {
-    $cmd = $linesOfTokens[$i][0]
-    [bool]$isDirective = $cmd.StartsWith(".", [System.StringComparison]::OrdinalIgnoreCase)
-    [bool]$isLabel = $cmd.EndsWith(":", [System.StringComparison]::OrdinalIgnoreCase)
-    if ($isDirective -eq 1) {
-        Write-Host "is directive at $lineOfTokens[$i]"
+    $tokens = $linesOfTokens[$i]
+    $firstToken = $tokens[0]
+
+    if ($firstToken.EndsWith(":")) {
+        $labelName = $firstToken.TrimEnd(':')
+
+        $symbolTable[$labelName] = $pc
+        Write-Host "Label found: $labelName at PC: 0x$($pc.ToString('X4'))"
+
+        if ($tokens.Count -eq 1) {
+            continue
+        }
+
+        $tokens.RemoveAt(0)
+        $firstToken = $tokens[0]
     }
-    elseif ($isLabel -eq 1) {
-        Write-Host "is label at $lineOfTokens[$i]"
+    elseif ($firstToken.StartsWith(".")) {
+        Write-Host "Directive found: $firstToken at PC 0x$($pc.ToString('X4'))"
+
+        continue
     }
+
+    Write-Host "Instruction '$firstToken' at PC 0x$($pc.ToString('X4'))"
+    $pc += 4
+}
+
+Write-Host "`n--- Symbol Table ---" -ForegroundColor Yellow
+foreach ($pair in $symbolTable.GetEnumerator()) {
+    Write-Host "$($pair.Key) = 0x$($pair.Value.ToString('X4'))"
 }
