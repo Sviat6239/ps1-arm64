@@ -1,6 +1,8 @@
 $path = ".\entry.asm"
 $linesOfTokens = [System.Collections.Generic.List[System.Collections.Generic.List[string]]]::new()
 $outputCode = [System.Collections.Generic.List[System.Collections.Generic.list[string]]]::new()
+$directiveList = [System.Collections.Generic.List]::new
+$labelList = [System.Collections.Generic.List]::new
 
 if (Test-Path $path) {
     foreach ($line in [System.IO.File]::ReadLines($path)) {
@@ -38,7 +40,11 @@ for ($i = 0; $i -lt $linesOfTokens.Count; $i++) {
 for ($i = 0; $i -lt $linesOfTokens.Count; $i++) {
     $cmd = $linesOfTokens[$i][0]
     [bool]$isDirective = $cmd.StartsWith(".", [System.StringComparison]::OrdinalIgnoreCase)
+    [bool]$isLabel = $cmd.EndsWith(":", [System.StringComparison]::OrdinalIgnoreCase)
     if ($isDirective -eq 1) {
         Write-Host "is directive at $lineOfTokens[$i]"
+    }
+    elseif ($isLabel -eq 1) {
+        Write-Host "is label at $lineOfTokens[$i]"
     }
 }
