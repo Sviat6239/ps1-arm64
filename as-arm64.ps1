@@ -47,9 +47,29 @@ for ($i = 0; $i -lt $linesOfTokens.Count; $i++) {
         $tokens.RemoveAt(0)
         $firstToken = $tokens[0]
     }
-    elseif ($firstToken.StartsWith(".")) {
-        Write-Host "Directive found: $firstToken at PC 0x$($pc.ToString('X4'))"
-
+    if ($firstToken.StartsWith(".")) {
+        switch ($firstToken.ToLower()) {
+            ".text" {
+                $pc = [math]::Ceiling($pc / 4) * 4 
+            }
+            ".data" { 
+            }
+            ".ascii" {
+                $rawString = $tokens[1].Trim('"')
+                $pc += $rawString.Length
+            }
+            ".asciz" {
+                $rawString = $tokens[1].Trim('"')
+                $pc += $rawString.Length + 1
+            }
+            ".word" { $pc += 4 }
+            ".quad" { $pc += 8 }
+            ".byte" { $pc += 1 }
+            ".align" {
+                [int]$alignBytes = [math]::Pow(2, [int]$tokens[1])
+                $pc = [math]::Ceiling($pc / $alignBytes) * $alignBytes
+            }
+        }
         continue
     }
 
